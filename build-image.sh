@@ -2,7 +2,7 @@
 
 SCRIPT=$(readlink -f "${0}")
 DIR=$(dirname "${SCRIPT}")
-TAG="wimp:latest"
+TAG="radowan/wimp:latest"
 
 docker build -t "${TAG}" "${DIR}"
 

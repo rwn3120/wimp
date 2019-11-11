@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run -it -p 8080:8080 $@ wimp-cell:latest
+docker run -it -p 8080:8080 $@ radowan/wimp
