@@ -1,15 +1,16 @@
 package main
 
 import (
-	"crypto/md5"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func getEnv(key, fallback string) string {
@@ -31,26 +32,23 @@ func getEnvDuration(key, fallback string) time.Duration {
 }
 
 func serve(w http.ResponseWriter, req *http.Request, minDuration, maxDuration time.Duration, done chan bool) {
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		fmt.Println("Bad Request:", err.Error())
-		http.Error(w, "can't read body", http.StatusBadRequest)
-		done <- true
-		return
-	}
 	duration := time.Duration(rand.Int63n(maxDuration.Milliseconds()-minDuration.Milliseconds())+minDuration.Milliseconds()) * time.Millisecond
 	<-time.After(duration)
 	w.WriteHeader(http.StatusOK)
-	response := fmt.Sprintf("%v: %s", time.Now(), body)
-	response = fmt.Sprintf("%x", md5.Sum([]byte(response)))
-	fmt.Println("OK:", response)
-	io.WriteString(w, response+"\n")
+	dump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+		return
+	}
+	response := fmt.Sprintf("Time %v\n---\n%s\n---\n%s\n", time.Now().Format(time.ANSIC), strings.Join(os.Environ(), "\n"), dump)
+	fmt.Println(response)
+	io.WriteString(w, response)
 	done <- true
 }
 
 func main() {
 	listenAddr := getEnv("LISTEN_ADDR", ":8080")
-	queryEndpoint := getEnv("QUERY_ENDPOINT", "/query")
+	queryEndpoint := getEnv("QUERY_ENDPOINT", "/")
 	metricsEndpoint := getEnv("METRICS_ENDPOINT", "/metrics")
 	minDuration := getEnvDuration("MIN_QUERY_DURATIOn", "50ms")
 	maxDuration := getEnvDuration("MAX_QUERY_DURATION", "500ms")
