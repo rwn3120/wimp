@@ -3,7 +3,7 @@ FROM golang:buster AS builder
 
 WORKDIR $GOPATH/src/github.com/rwn3120/wimp
 
-COPY *.go .
+COPY * ./
 
 RUN CGO_ENABLED=0 go build -o /go/bin/wimp
 
